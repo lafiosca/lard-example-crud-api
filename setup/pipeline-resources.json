@@ -1,0 +1,469 @@
+{
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Description": "Build pipeline for Lard example CRUD API",
+    "Resources": {
+        "Pipeline": {
+            "Type": "AWS::CodePipeline::Pipeline",
+            "Properties": {
+                "Name": { "Ref": "ProjectName" },
+                "RoleArn": { "Fn::ImportValue": { "Fn::Sub": "${LardStack}:CodePipelineServiceRoleArn" } },
+                "RestartExecutionOnUpdate": false,
+                "ArtifactStore": {
+                    "Type": "S3",
+                    "Location": { "Fn::ImportValue": { "Fn::Sub": "${LardStack}:CodePipelineS3Bucket" } }
+                },
+                "Stages": [
+                    {
+                        "Name": "Source",
+                        "Actions": [
+                            {
+                                "RunOrder": 1,
+                                "Name": "Source",
+                                "InputArtifacts": [],
+                                "OutputArtifacts": [
+                                    { "Name": "source" }
+                                ],
+                                "ActionTypeId": {
+                                    "Category": "Source",
+                                    "Owner": "ThirdParty",
+                                    "Version": "1",
+                                    "Provider": "GitHub"
+                                },
+                                "Configuration": {
+                                    "Owner": { "Ref": "GitHubOwner" },
+                                    "Repo": { "Ref": "GitHubRepo" },
+                                    "Branch": { "Ref": "GitHubBranch" },
+                                    "OAuthToken": { "Ref": "GitHubOAuthToken" }
+                                }
+                            }
+                        ]
+                    },
+                    {
+                        "Name": "Build",
+                        "Actions": [
+                            {
+                                "RunOrder": 1,
+                                "Name": "CodeBuild",
+                                "InputArtifacts": [
+                                    { "Name": "source" }
+                                ],
+                                "OutputArtifacts": [
+                                    { "Name": "build-artifacts" }
+                                ],
+                                "ActionTypeId": {
+                                    "Category": "Build",
+                                    "Owner": "AWS",
+                                    "Version": "1",
+                                    "Provider": "CodeBuild"
+                                },
+                                "Configuration": {
+                                    "ProjectName": { "Ref": "BuildProject" }
+                                }
+                            }
+                        ]
+                    },
+                    {
+                        "Name": "DevDeploy",
+                        "Actions": [
+                            {
+                                "RunOrder": 1,
+                                "Name": "CreateChangeset",
+                                "InputArtifacts": [
+                                    { "Name": "build-artifacts" }
+                                ],
+                                "OutputArtifacts": [],
+                                "ActionTypeId": {
+                                    "Category": "Deploy",
+                                    "Owner": "AWS",
+                                    "Version": "1",
+                                    "Provider": "CloudFormation"
+                                },
+                                "Configuration": {
+                                    "ActionMode": "CHANGE_SET_REPLACE",
+                                    "StackName": { "Ref": "DevStack" },
+                                    "ChangeSetName": { "Fn::Sub": "${DevStack}-changes" },
+                                    "TemplatePath": "build-artifacts::sam-output-dev.yml",
+                                    "RoleArn": { "Fn::ImportValue": { "Fn::Sub": "${LardStack}:CodePipelineCloudFormationServiceRoleArn" } },
+                                    "Capabilities": "CAPABILITY_IAM",
+                                    "ParameterOverrides": {
+                                        "Fn::Sub": "{ \"QuestionsDynamoStack\": \"${DevQuestionsDynamoStack}\" }"
+                                    }
+                                }
+                            },
+                            {
+                                "RunOrder": 2,
+                                "Name": "ExecuteChangeset",
+                                "InputArtifacts": [],
+                                "OutputArtifacts": [
+                                    { "Name": "dev-cf-output" }
+                                ],
+                                "ActionTypeId": {
+                                    "Category": "Deploy",
+                                    "Owner": "AWS",
+                                    "Version": "1",
+                                    "Provider": "CloudFormation"
+                                },
+                                "Configuration": {
+                                    "ActionMode": "CHANGE_SET_EXECUTE",
+                                    "StackName": { "Ref": "DevStack" },
+                                    "ChangeSetName": { "Fn::Sub": "${DevStack}-changes" },
+                                    "OutputFileName": "cf-output.json"
+                                }
+                            },
+                            {
+                                "RunOrder": 3,
+                                "Name": "VersionLambdaFunctions",
+                                "InputArtifacts": [
+                                    { "Name": "dev-cf-output" }
+                                ],
+                                "OutputArtifacts": [
+                                    { "Name": "dev-lambda-versions" }
+                                ],
+                                "ActionTypeId": {
+                                    "Category": "Invoke",
+                                    "Owner": "AWS",
+                                    "Version": "1",
+                                    "Provider": "Lambda"
+                                },
+                                "Configuration": {
+                                    "FunctionName": { "Fn::ImportValue": { "Fn::Sub": "${LardStack}:CodePipelineLambdaVersioner" } }
+                                }
+                            },
+                            {
+                                "RunOrder": 4,
+                                "Name": "UpdateLiveAliases",
+                                "InputArtifacts": [
+                                    { "Name": "dev-lambda-versions" }
+                                ],
+                                "OutputArtifacts": [],
+                                "ActionTypeId": {
+                                    "Category": "Invoke",
+                                    "Owner": "AWS",
+                                    "Version": "1",
+                                    "Provider": "Lambda"
+                                },
+                                "Configuration": {
+                                    "FunctionName": { "Fn::ImportValue": { "Fn::Sub": "${LardStack}:CodePipelineLambdaAliaser" } },
+                                    "UserParameters": "live"
+                                }
+                            }
+                        ]
+                    },
+                    {
+                        "Name": "DevApprove",
+                        "Actions": [
+                            {
+                                "RunOrder": 1,
+                                "Name": "DevApprove",
+                                "InputArtifacts": [],
+                                "OutputArtifacts": [],
+                                "ActionTypeId": {
+                                    "Category": "Approval",
+                                    "Owner": "AWS",
+                                    "Version": "1",
+                                    "Provider": "Manual"
+                                },
+                                "Configuration": {
+                                    "NotificationArn": { "Ref": "ApprovalTopic" },
+                                    "CustomData": {
+                                        "Fn::Sub": "Please verify the ${ProjectDescriptiveName} dev services before prod deployment."
+                                    }
+                                }
+                            }
+                        ]
+                    },
+                    {
+                        "Name": "ProdDeploy",
+                        "Actions": [
+                            {
+                                "RunOrder": 1,
+                                "Name": "CreateChangeset",
+                                "InputArtifacts": [
+                                    { "Name": "build-artifacts" }
+                                ],
+                                "OutputArtifacts": [],
+                                "ActionTypeId": {
+                                    "Category": "Deploy",
+                                    "Owner": "AWS",
+                                    "Version": "1",
+                                    "Provider": "CloudFormation"
+                                },
+                                "Configuration": {
+                                    "ActionMode": "CHANGE_SET_REPLACE",
+                                    "StackName": { "Ref": "ProdStack" },
+                                    "ChangeSetName": { "Fn::Sub": "${ProdStack}-changes" },
+                                    "TemplatePath": "build-artifacts::sam-output-prod.yml",
+                                    "RoleArn": { "Fn::ImportValue": { "Fn::Sub": "${LardStack}:CodePipelineCloudFormationServiceRoleArn" } },
+                                    "Capabilities": "CAPABILITY_IAM",
+                                    "ParameterOverrides": {
+                                        "Fn::Sub": "{ \"QuestionsDynamoStack\": \"${ProdQuestionsDynamoStack}\" }"
+                                    }
+                                }
+                            },
+                            {
+                                "RunOrder": 2,
+                                "Name": "ExecuteChangeset",
+                                "InputArtifacts": [],
+                                "OutputArtifacts": [
+                                    { "Name": "prod-cf-output" }
+                                ],
+                                "ActionTypeId": {
+                                    "Category": "Deploy",
+                                    "Owner": "AWS",
+                                    "Version": "1",
+                                    "Provider": "CloudFormation"
+                                },
+                                "Configuration": {
+                                    "ActionMode": "CHANGE_SET_EXECUTE",
+                                    "StackName": { "Ref": "ProdStack" },
+                                    "ChangeSetName": { "Fn::Sub": "${ProdStack}-changes" },
+                                    "OutputFileName": "cf-output.json"
+                                }
+                            },
+                            {
+                                "RunOrder": 3,
+                                "Name": "VersionLambdaFunctions",
+                                "InputArtifacts": [
+                                    { "Name": "prod-cf-output" }
+                                ],
+                                "OutputArtifacts": [
+                                    { "Name": "prod-lambda-versions" }
+                                ],
+                                "ActionTypeId": {
+                                    "Category": "Invoke",
+                                    "Owner": "AWS",
+                                    "Version": "1",
+                                    "Provider": "Lambda"
+                                },
+                                "Configuration": {
+                                    "FunctionName": { "Fn::ImportValue": { "Fn::Sub": "${LardStack}:CodePipelineLambdaVersioner" } }
+                                }
+                            },
+                            {
+                                "RunOrder": 4,
+                                "Name": "UpdateLiveAliases",
+                                "InputArtifacts": [
+                                    { "Name": "prod-lambda-versions" }
+                                ],
+                                "OutputArtifacts": [],
+                                "ActionTypeId": {
+                                    "Category": "Invoke",
+                                    "Owner": "AWS",
+                                    "Version": "1",
+                                    "Provider": "Lambda"
+                                },
+                                "Configuration": {
+                                    "FunctionName": { "Fn::ImportValue": { "Fn::Sub": "${LardStack}:CodePipelineLambdaAliaser" } },
+                                    "UserParameters": "live"
+                                }
+                            }
+                        ]
+                    }
+                ]
+            }
+        },
+        "BuildProject": {
+            "Type": "AWS::CodeBuild::Project",
+            "Properties": {
+                "Name": { "Ref": "ProjectName" },
+                "ServiceRole": { "Fn::GetAtt": ["BuildServiceRole", "Arn"] },
+                "Source": { "Type": "CODEPIPELINE" },
+                "Artifacts": { "Type": "CODEPIPELINE" },
+                "Environment": {
+                    "ComputeType": "BUILD_GENERAL1_SMALL",
+                    "Image": "aws/codebuild/nodejs:6.3.1",
+                    "Type": "LINUX_CONTAINER",
+                    "EnvironmentVariables": [
+                        {
+                            "Name": "CodePipelineS3Bucket",
+                            "Value": { "Fn::ImportValue": { "Fn::Sub": "${LardStack}:CodePipelineS3Bucket" } }
+                        },
+                        {
+                            "Name": "AwsRegion",
+                            "Value": { "Ref": "AWS::Region" }
+                        },
+                        {
+                            "Name": "AwsAccountId",
+                            "Value": { "Ref": "AWS::AccountId" }
+                        },
+                        {
+                            "Name": "DevStack",
+                            "Value": { "Ref": "DevStack" }
+                        },
+                        {
+                            "Name": "ProdStack",
+                            "Value": { "Ref": "ProdStack" }
+                        },
+                        {
+                            "Name": "DevCognitoStack",
+                            "Value": { "Ref": "DevCognitoStack" }
+                        },
+                        {
+                            "Name": "ProdCognitoStack",
+                            "Value": { "Ref": "ProdCognitoStack" }
+                        }
+                    ]
+                },
+                "TimeoutInMinutes": 20,
+                "Tags": []
+            }
+        },
+        "BuildServiceRole": {
+            "Type": "AWS::IAM::Role",
+            "Properties": {
+                "RoleName": { "Fn::Sub": "CodeBuild-${ProjectName}-service-role" },
+                "Path": "/service-role/",
+                "AssumeRolePolicyDocument": {
+                    "Version": "2012-10-17",
+                    "Statement": [
+                        {
+                            "Effect": "Allow",
+                            "Principal": { "Service": "codebuild.amazonaws.com" },
+                            "Action": "sts:AssumeRole"
+                        }
+                    ]
+                },
+                "Policies": [
+                    {
+                        "PolicyName": "CodeBuild-S3FullObjectAccess-Pipeline",
+                        "PolicyDocument": {
+                            "Version": "2012-10-17",
+                            "Statement": [
+                                {
+                                    "Effect": "Allow",
+                                    "Resource": [{
+                                        "Fn::Join": [
+                                            "",
+                                            [
+                                                "arn:aws:s3:::",
+                                                { "Fn::ImportValue": { "Fn::Sub": "${LardStack}:CodePipelineS3Bucket" } },
+                                                "/*"
+                                            ]
+                                        ]
+                                    }],
+                                    "Action": [
+                                        "s3:GetObject",
+                                        "s3:GetObjectVersion",
+                                        "s3:PutObject"
+                                    ]
+                                }
+                            ]
+                        }
+                    },
+                    {
+                        "PolicyName": "CodeBuild-LogWriteAccess",
+                        "PolicyDocument": {
+                            "Version": "2012-10-17",
+                            "Statement": [
+                                {
+                                    "Effect": "Allow",
+                                    "Resource": [
+                                        { "Fn::Sub": "arn:aws:logs:*:*:log-group:/aws/codebuild/${ProjectName}" },
+                                        { "Fn::Sub": "arn:aws:logs:*:*:log-group:/aws/codebuild/${ProjectName}:*" }
+                                    ],
+                                    "Action": [
+                                        "logs:CreateLogGroup",
+                                        "logs:CreateLogStream",
+                                        "logs:PutLogEvents"
+                                    ]
+                                }
+                            ]
+                        }
+                    },
+                    {
+                        "PolicyName": "CodeBuild-DescribeCognitoStacks",
+                        "PolicyDocument": {
+                            "Version": "2012-10-17",
+                            "Statement": [
+                                {
+                                    "Effect": "Allow",
+                                    "Resource": [
+                                        { "Fn::Sub": "arn:aws:cloudformation:*:*:stack/${DevCognitoStack}/*" },
+                                        { "Fn::Sub": "arn:aws:cloudformation:*:*:stack/${ProdCognitoStack}/*" }
+                                    ],
+                                    "Action": [
+                                        "cloudformation:DescribeStacks"
+                                    ]
+                                }
+                            ]
+                        }
+                    }
+                ]
+            }
+        },
+        "ApprovalTopic": {
+            "Type": "AWS::SNS::Topic",
+            "Properties": {
+                "DisplayName": "Approval",
+                "Subscription": [{
+                    "Protocol": "email",
+                    "Endpoint": { "Ref": "ApprovalEmail" }
+                }]
+            }
+        }
+    },
+    "Parameters": {
+        "LardStack": {
+            "Type": "String",
+            "Description": "Lard stack name"
+        },
+        "ProjectName": {
+            "Type": "String",
+            "Description": "Base project name for use in identifiers (e.g., \"LardExampleCrudApi\")",
+            "AllowedPattern": "[A-Za-z0-9]*"
+        },
+        "ProjectDescriptiveName": {
+            "Type": "String",
+            "Description": "Descriptive project name for use in text (e.g., \"Lard example CRUD API\")"
+        },
+        "DevStack": {
+            "Type": "String",
+            "Description": "Development project stack name (e.g., \"Dev-LardExampleCrudApi\")",
+            "AllowedPattern": "[A-Za-z0-9\\-]*"
+        },
+        "ProdStack": {
+            "Type": "String",
+            "Description": "Production project stack name (e.g., \"Prod-LardExampleCrudApi\")",
+            "AllowedPattern": "[A-Za-z0-9\\-]*"
+        },
+        "GitHubOwner": {
+            "Type": "String",
+            "Description": "GitHub user/org who owns the repository being built (e.g., \"lafiosca\")"
+        },
+        "GitHubRepo": {
+            "Type": "String",
+            "Description": "GitHub repository name to be built (e.g., \"lard-example-crud-api\")"
+        },
+        "GitHubBranch": {
+            "Type": "String",
+            "Description": "Repository branch to build from (e.g., \"master\")",
+            "Default": "master"
+        },
+        "GitHubOAuthToken": {
+            "Type": "String",
+            "Description": "GitHub personal OAuth token with repo and admin:repo_hook scopes for a user with admin access to the repository <https://help.github.com/articles/creating-an-access-token-for-command-line-use/>",
+            "NoEcho": true
+        },
+        "ApprovalEmail": {
+            "Type": "String",
+            "Description": "Email address to subscribe to deployment approval topic",
+            "Default": "joe@quasarblu.com"
+        },
+        "DevCognitoStack": {
+            "Type": "String",
+            "Description": "Name of development Cognito resource stack (e.g., \"Cognito-Dev-LardExampleCrudApi\")"
+        },
+        "ProdCognitoStack": {
+            "Type": "String",
+            "Description": "Name of production Cognito resource stack (e.g., \"Cognito-Prod-LardExampleCrudApi\")"
+        },
+        "DevDynamoStack": {
+            "Type": "String",
+            "Description": "Name of development Dynamo resource stack (e.g., \"Dynamo-Dev-LardExampleCrudApi\")"
+        },
+        "ProdDynamoStack": {
+            "Type": "String",
+            "Description": "Name of production Dynamo resource stack (e.g., \"Dynamo-Prod-LardExampleCrudApi\")"
+        }
+    }
+}

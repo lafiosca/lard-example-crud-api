@@ -1,0 +1,20 @@
+{
+  "name": "lard-example-crud-api",
+  "version": "0.1.0",
+  "description": "Lard example: CRUD API",
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/lafiosca/lard-example-crud-api.git"
+  },
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Joe Lafiosca <joe@quasarblu.com>",
+  "license": "MIT",
+  "devDependencies": {
+    "gulp": "github:gulpjs/gulp#4.0",
+    "gulp-install": "^0.6.0",
+    "gulp-zip": "^3.2.0"
+  }
+}

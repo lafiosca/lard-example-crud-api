@@ -1,0 +1,49 @@
+version: 0.1
+
+phases:
+  install:
+    commands:
+      - apt-get update -y
+      # jq is needed for fetching UserPoolArn from CloudFormation in post_build step
+      - apt-get install -y jq
+
+  pre_build:
+    commands:
+      # If necessary, copy private NPM credentials from S3 for use in build step:
+      # - "aws s3 cp s3://${ConfigS3Bucket}/${ConfigS3KeyNpmrc} ~/.npmrc"
+      # - chmod 600 ~/.npmrc
+
+  build:
+    commands:
+      - npm install
+      - cd src/get-note && ../../node_modules/.bin/gulp build
+      - cd src/create-note && ../../node_modules/.bin/gulp build
+      - cd src/update-note && ../../node_modules/.bin/gulp build
+      - cd src/delete-note && ../../node_modules/.bin/gulp build
+
+  post_build:
+    commands:
+      # Replace common variables (Region and AccountId) in API Swagger template
+      - "cat api-swagger-template.json | sed -e \"s/%Region%/$AwsRegion/g\" | sed -e \"s/%AccountId%/$AwsAccountId/g\" > api-swagger-partial.json"
+
+      # Replace development-specific variables (API Title and Cognito Stack name)
+      - "cat api-swagger-partial.json | sed -e 's#%UserPoolArn%#'`aws cloudformation describe-stacks --stack-name $DevCognitoStack | jq -r '.Stacks[0].Outputs[] | select(.OutputKey == \"UserPoolArn\") | .OutputValue'`'#' | sed -e \"s/%ApiTitle%/$DevStack/\" > api-swagger.json"
+
+      # Package development SAM template (loads Lambda dist zips to S3 locations)
+      - "aws cloudformation package --template-file sam-template.json --output-template-file sam-output-dev.yml --s3-bucket \"$CodePipelineS3Bucket\" --s3-prefix codebuild/`echo $CODEBUILD_BUILD_ID | tr : /`"
+      - rm -f api-swagger.json
+
+      # Replace production-specific variables (API Title and Cognito Stack name)
+      - "cat api-swagger-partial.json | sed -e 's#%UserPoolArn%#'`aws cloudformation describe-stacks --stack-name $ProdCognitoStack | jq -r '.Stacks[0].Outputs[] | select(.OutputKey == \"UserPoolArn\") | .OutputValue'`'#' | sed -e \"s/%ApiTitle%/$ProdStack/\" > api-swagger.json"
+
+      # Package production SAM template (loads Lambda dist zips to S3 locations)
+      - "aws cloudformation package --template-file sam-template.json --output-template-file sam-output-prod.yml --s3-bucket \"$CodePipelineS3Bucket\" --s3-prefix codebuild/`echo $CODEBUILD_BUILD_ID | tr : /`"
+
+artifacts:
+  type: zip
+  files:
+    # Development SAM output template artifact
+    - sam-output-dev.yml
+
+    # Production SAM output template artifact
+    - sam-output-prod.yml

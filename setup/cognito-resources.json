@@ -1,0 +1,120 @@
+{
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Description": "Cognito resources for Lard example CRUD API",
+    "Resources": {
+        "UserPool": {
+            "Type": "AWS::Cognito::UserPool",
+            "DeletionPolicy": "Retain",
+            "Properties": {
+                "UserPoolName": { "Ref": "ParentStack" },
+                "AdminCreateUserConfig": {
+                    "AllowAdminCreateUserOnly": true
+                },
+                "AliasAttributes": [
+                    "email",
+                    "phone_number",
+                    "preferred_username"
+                ],
+                "AutoVerifiedAttributes": [
+                    "phone_number"
+                ],
+                "MfaConfiguration": "OFF",
+                "Policies": {
+                    "PasswordPolicy": {
+                        "RequireLowercase": true,
+                        "RequireSymbols": false,
+                        "RequireNumbers": true,
+                        "MinimumLength": 8,
+                        "RequireUppercase": true
+                    }
+                },
+                "SmsConfiguration": {
+                    "ExternalId": { "Ref": "UserPoolSmsExternalId" },
+                    "SnsCallerArn": { "Fn::GetAtt": ["UserPoolSmsRole", "Arn"] }
+                }
+            }
+        },
+        "UserPoolClientWeb": {
+            "Type": "AWS::Cognito::UserPoolClient",
+            "DeletionPolicy": "Retain",
+            "Properties": {
+                "UserPoolId": { "Ref": "UserPool" },
+                "ClientName": { "Fn::Sub": "${ParentStack}-Web" },
+                "ExplicitAuthFlows": [],
+                "GenerateSecret": false,
+                "RefreshTokenValidity": 30
+            }
+        },
+        "UserPoolSmsRole": {
+            "Type": "AWS::IAM::Role",
+            "DeletionPolicy": "Retain",
+            "Properties": {
+                "RoleName": { "Fn::Sub": "${ParentStack}-UserPool-Sms" },
+                "AssumeRolePolicyDocument": {
+                    "Version": "2012-10-17",
+                    "Statement": [
+                        {
+                            "Effect": "Allow",
+                            "Principal": { "Service": "cognito-idp.amazonaws.com" },
+                            "Action": "sts:AssumeRole",
+                            "Condition": {
+                                "StringEquals": {
+                                    "sts:ExternalId": { "Ref": "UserPoolSmsExternalId" }
+                                }
+                            }
+                        }
+                    ]
+                },
+                "Path": "/service-role/",
+                "Policies": [
+                    {
+                        "PolicyName": "AllowSnsPublish",
+                        "PolicyDocument": {
+                            "Version": "2012-10-17",
+                            "Statement": [
+                                {
+                                    "Effect": "Allow",
+                                    "Action": ["sns:publish"],
+                                    "Resource": ["*"]
+                                }
+                            ]
+                        }
+                    }
+                ]
+            }
+        }
+    },
+    "Parameters": {
+        "ParentStack": {
+            "Type": "String",
+            "Description": "Name of parent project stack for use in identifiers (e.g., \"Dev-LardExampleCrudApi\")",
+            "AllowedPattern": "[A-Za-z0-9\\-]*"
+        },
+        "UserPoolSmsExternalId": {
+            "Type": "String",
+            "Description": "Shared secret for User Pool SMS role trust (e.g., a GUID)"
+        }
+    },
+    "Outputs": {
+        "UserPoolId": {
+            "Value": { "Ref": "UserPool" },
+            "Export": { "Name": { "Fn::Sub": "${AWS::StackName}:UserPoolId" } }
+        },
+        "UserPoolProviderName": {
+            "Value": { "Fn::GetAtt": ["UserPool", "ProviderName"] },
+            "Export": { "Name": { "Fn::Sub": "${AWS::StackName}:UserPoolProviderName" } }
+        },
+        "UserPoolProviderUrl": {
+            "Value": { "Fn::GetAtt": ["UserPool", "ProviderURL"] },
+            "Export": { "Name": { "Fn::Sub": "${AWS::StackName}:UserPoolProviderUrl" } }
+        },
+        "UserPoolArn": {
+            "Value": { "Fn::GetAtt": ["UserPool", "Arn"] },
+            "Export": { "Name": { "Fn::Sub": "${AWS::StackName}:UserPoolArn" } }
+        },
+        "UserPoolClientWeb": {
+            "Value": { "Ref": "UserPoolClientWeb" },
+            "Export": { "Name": { "Fn::Sub": "${AWS::StackName}:UserPoolClientWeb" } }
+        }
+    }
+}

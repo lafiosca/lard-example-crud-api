@@ -1,0 +1,54 @@
+{
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Description": "Dynamo resources for Lard example CRUD API",
+    "Resources": {
+        "NotesTable": {
+            "Type": "AWS::DynamoDB::Table",
+            "DeletionPolicy": "Retain",
+            "Properties": {
+                "TableName": { "Fn::Sub": "${ParentStack}-Notes" },
+                "AttributeDefinitions": [
+                    {
+                        "AttributeName": "id",
+                        "AttributeType": "S"
+                    }
+                ],
+                "KeySchema": [
+                    {
+                        "AttributeName": "id",
+                        "KeyType": "HASH"
+                    }
+                ],
+                "ProvisionedThroughput": {
+                    "ReadCapacityUnits": { "Ref": "NotesRCU" },
+                    "WriteCapacityUnits": { "Ref": "NotesWCU" }
+                }
+            }
+        }
+    },
+    "Parameters": {
+        "ParentStack": {
+            "Type": "String",
+            "Description": "Name of parent project stack for use in identifiers (e.g., \"Dev-LardExampleCrudApi\")",
+            "AllowedPattern": "[A-Za-z0-9\\-]*"
+        },
+        "NotesRCU": {
+            "Type": "Number",
+            "Description": "Read Capacity Units for Notes table",
+            "Default": 1,
+            "MinValue": 1
+        },
+        "NotesWCU": {
+            "Type": "Number",
+            "Description": "Write Capacity Units for Notes table",
+            "Default": 1,
+            "MinValue": 1
+        }
+    },
+    "Outputs": {
+        "NotesTable": {
+            "Value": { "Ref": "NotesTable" },
+            "Export": { "Name": { "Fn::Sub": "${AWS::StackName}:NotesTable" } }
+        }
+    }
+}

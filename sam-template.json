@@ -1,0 +1,196 @@
+{
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Transform": "AWS::Serverless-2016-10-31",
+    "Description": "Lard example: CRUD API",
+    "Resources": {
+        "LardExampleCrudApi": {
+            "Type": "AWS::Serverless::Api",
+            "Properties": {
+                "DefinitionUri": "api-swagger.json",
+                "StageName": "Api",
+                "Variables": {
+                    "GetNoteFunction": { "Fn::Sub": "${GetNoteFunction}:live" },
+                    "CreateNoteFunction": { "Fn::Sub": "${CreateNoteFunction}:live" },
+                    "UpdateNoteFunction": { "Fn::Sub": "${UpdateNoteFunction}:live" },
+                    "DeleteNoteFunction": { "Fn::Sub": "${DeleteNoteFunction}:live" }
+                }
+            }
+        },
+        "GetNoteFunction": {
+            "Type": "AWS::Serverless::Function",
+            "Properties": {
+                "FunctionName": { "Fn::Sub": "${AWS::StackName}-GetNote" },
+                "Handler": "index.handler",
+                "Runtime": "nodejs6.10",
+                "CodeUri": "src/get-note/export/dist.zip",
+                "MemorySize": 128,
+                "Timeout": 10,
+                "Description": "GetNote API handler",
+                "Policies": ["AmazonDynamoDBReadOnlyAccess"],
+                "Environment": {
+                    "Variables": {
+                        "DynamoTableNotes": { "Fn::ImportValue": { "Fn::Sub": "${DynamoStack}:NotesTable" } }
+                    }
+                }
+            }
+        },
+        "GetNoteVersion": {
+            "Type": "AWS::Lambda::Version",
+            "Properties": {
+                "FunctionName": { "Ref": "GetNoteFunction" }
+            }
+        },
+        "GetNoteAlias": {
+            "Type": "AWS::Lambda::Alias",
+            "Properties": {
+                "FunctionName": { "Ref": "GetNoteFunction" },
+                "FunctionVersion": { "Fn::GetAtt": ["GetNoteVersion", "Version"] },
+                "Name": "live"
+            }
+        },
+        "GetNoteApiPermission": {
+            "Type": "AWS::Lambda::Permission",
+            "Properties": {
+                "Action": "lambda:InvokeFunction",
+                "FunctionName": { "Ref": "GetNoteAlias" },
+                "Principal": "apigateway.amazonaws.com",
+                "SourceArn": { "Fn::Sub": "arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${LardExampleCrudApi}/Api/GET/notes/*" }
+            }
+        },
+        "CreateNoteFunction": {
+            "Type": "AWS::Serverless::Function",
+            "Properties": {
+                "FunctionName": { "Fn::Sub": "${AWS::StackName}-CreateNote" },
+                "Handler": "index.handler",
+                "Runtime": "nodejs6.10",
+                "CodeUri": "src/create-note/export/dist.zip",
+                "MemorySize": 128,
+                "Timeout": 10,
+                "Description": "CreateNote API handler",
+                "Policies": ["AmazonDynamoDBFullAccess"],
+                "Environment": {
+                    "Variables": {
+                        "DynamoTableNotes": { "Fn::ImportValue": { "Fn::Sub": "${QuestionsDynamoStack}:NotesTable" } }
+                    }
+                }
+            }
+        },
+        "CreateNoteVersion": {
+            "Type": "AWS::Lambda::Version",
+            "Properties": {
+                "FunctionName": { "Ref": "CreateNoteFunction" }
+            }
+        },
+        "CreateNoteAlias": {
+            "Type": "AWS::Lambda::Alias",
+            "Properties": {
+                "FunctionName": { "Ref": "CreateNoteFunction" },
+                "FunctionVersion": { "Fn::GetAtt": ["CreateNoteVersion", "Version"] },
+                "Name": "live"
+            }
+        },
+        "CreateNoteApiPermission": {
+            "Type": "AWS::Lambda::Permission",
+            "Properties": {
+                "Action": "lambda:InvokeFunction",
+                "FunctionName": { "Ref": "CreateNoteAlias" },
+                "Principal": "apigateway.amazonaws.com",
+                "SourceArn": { "Fn::Sub": "arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${LardExampleCrudApi}/Api/POST/notes" }
+            }
+        },
+        "UpdateNoteFunction": {
+            "Type": "AWS::Serverless::Function",
+            "Properties": {
+                "FunctionName": { "Fn::Sub": "${AWS::StackName}-UpdateNote" },
+                "Handler": "index.handler",
+                "Runtime": "nodejs6.10",
+                "CodeUri": "src/update-note/export/dist.zip",
+                "MemorySize": 128,
+                "Timeout": 10,
+                "Description": "UpdateNote API handler",
+                "Policies": ["AmazonDynamoDBFullAccess"],
+                "Environment": {
+                    "Variables": {
+                        "DynamoTableNotes": { "Fn::ImportValue": { "Fn::Sub": "${DynamoStack}:NotesTable" } }
+                    }
+                }
+            }
+        },
+        "UpdateNoteVersion": {
+            "Type": "AWS::Lambda::Version",
+            "Properties": {
+                "FunctionName": { "Ref": "UpdateNoteFunction" }
+            }
+        },
+        "UpdateNoteAlias": {
+            "Type": "AWS::Lambda::Alias",
+            "Properties": {
+                "FunctionName": { "Ref": "UpdateNoteFunction" },
+                "FunctionVersion": { "Fn::GetAtt": ["UpdateNoteVersion", "Version"] },
+                "Name": "live"
+            }
+        },
+        "UpdateNoteApiPermission": {
+            "Type": "AWS::Lambda::Permission",
+            "Properties": {
+                "Action": "lambda:InvokeFunction",
+                "FunctionName": { "Ref": "UpdateNoteAlias" },
+                "Principal": "apigateway.amazonaws.com",
+                "SourceArn": { "Fn::Sub": "arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${LardExampleCrudApi}/Api/PUT/notes/*" }
+            }
+        },
+        "DeleteNoteFunction": {
+            "Type": "AWS::Serverless::Function",
+            "Properties": {
+                "FunctionName": { "Fn::Sub": "${AWS::StackName}-DeleteNote" },
+                "Handler": "index.handler",
+                "Runtime": "nodejs6.10",
+                "CodeUri": "src/delete-note/export/dist.zip",
+                "MemorySize": 128,
+                "Timeout": 10,
+                "Description": "DeleteNote API handler",
+                "Policies": ["AmazonDynamoDBFullAccess"],
+                "Environment": {
+                    "Variables": {
+                        "DynamoTableNotes": { "Fn::ImportValue": { "Fn::Sub": "${DynamoStack}:NotesTable" } }
+                    }
+                }
+            }
+        },
+        "DeleteNoteVersion": {
+            "Type": "AWS::Lambda::Version",
+            "Properties": {
+                "FunctionName": { "Ref": "DeleteNoteFunction" }
+            }
+        },
+        "DeleteNoteAlias": {
+            "Type": "AWS::Lambda::Alias",
+            "Properties": {
+                "FunctionName": { "Ref": "DeleteNoteFunction" },
+                "FunctionVersion": { "Fn::GetAtt": ["DeleteNoteVersion", "Version"] },
+                "Name": "live"
+            }
+        },
+        "DeleteNoteApiPermission": {
+            "Type": "AWS::Lambda::Permission",
+            "Properties": {
+                "Action": "lambda:InvokeFunction",
+                "FunctionName": { "Ref": "DeleteNoteAlias" },
+                "Principal": "apigateway.amazonaws.com",
+                "SourceArn": { "Fn::Sub": "arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${LardExampleCrudApi}/Api/DELETE/notes/*" }
+            }
+        }
+    },
+    "Outputs": {
+        "GetNoteFunctionArn": { "Value": { "Fn::GetAtt": ["GetNoteFunction", "Arn"] } },
+        "CreateNoteFunctionArn": { "Value": { "Fn::GetAtt": ["CreateNoteFunction", "Arn"] } },
+        "UpdateNoteFunctionArn": { "Value": { "Fn::GetAtt": ["UpdateNoteFunction", "Arn"] } },
+        "DeleteNoteFunctionArn": { "Value": { "Fn::GetAtt": ["DeleteNoteFunction", "Arn"] } }
+    },
+    "Parameters": {
+        "DynamoStack": {
+            "Type": "String",
+            "Description": "Name of Dynamo resources stack for CRUD resources (e.g., \"Dynamo-Dev-LardExampleCrudApi\")"
+        }
+    }
+}

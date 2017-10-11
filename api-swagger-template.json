@@ -1,0 +1,266 @@
+{
+    "swagger": "2.0",
+    "info": {
+        "version": "1.0.0",
+        "title": "%ApiTitle%"
+    },
+    "basePath": "/",
+    "schemes": ["https"],
+    "consumes": ["application/json"],
+    "produces": ["application/json"],
+    "x-amazon-apigateway-request-validators": {
+      "full": {
+        "validateRequestBody": true,
+        "validateRequestParameters": true
+      }
+    },
+    "x-amazon-apigateway-request-validator": "full",
+    "paths": {
+        "/notes": {
+            "post": {
+                "description": "Create a new note",
+                "operationId": "CreateNote",
+                "parameters": [
+                    { "$ref": "#/parameters/CreateNoteBody" }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success",
+                        "schema": { "$ref": "#/definitions/CreateNoteResponse" },
+                        "headers": {
+                            "Access-Control-Allow-Headers": { "type": "string" },
+                            "Access-Control-Allow-Methods": { "type": "string" },
+                            "Access-Control-Allow-Origin": { "type": "string" }
+                        }
+                    }
+                },
+                "security": [{ "CognitoUserPoolsAuth": [] }],
+                "x-amazon-apigateway-integration": {
+                    "uri": "arn:aws:apigateway:%Region%:lambda:path/2015-03-31/functions/arn:aws:lambda:%Region%:%AccountId%:function:${stageVariables.CreateNoteFunction}/invocations",
+                    "passthroughBehavior": "when_no_match",
+                    "httpMethod": "POST",
+                    "type": "aws_proxy"
+                }
+            },
+            "options": {
+                "summary": "CORS support",
+                "description": "Enable CORS by returning correct headers",
+                "x-amazon-apigateway-integration": {
+                    "type": "mock",
+                    "requestTemplates": {
+                        "application/json": "{ \"statusCode\": 200 }"
+                    },
+                    "responses": {
+                        "default": {
+                            "statusCode": "200",
+                            "responseParameters": {
+                                "method.response.header.Access-Control-Allow-Headers": "'Content-Type,Authorization'",
+                                "method.response.header.Access-Control-Allow-Methods": "'POST, OPTIONS'",
+                                "method.response.header.Access-Control-Allow-Origin": "'*'"
+                            },
+                            "responseTemplates": {
+                                "application/json": "{}"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Default response for CORS",
+                        "headers": {
+                            "Access-Control-Allow-Headers": { "type": "string" },
+                            "Access-Control-Allow-Methods": { "type": "string" },
+                            "Access-Control-Allow-Origin": { "type": "string" }
+                        }
+                    }
+                }
+            }
+        },
+        "/notes/{noteId}": {
+            "get": {
+                "description": "Get an existing note",
+                "operationId": "GetNote",
+                "parameters": [
+                    { "$ref": "#/parameters/noteId" }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success",
+                        "schema": { "$ref": "#/definitions/GetNoteResponse" },
+                        "headers": {
+                            "Access-Control-Allow-Headers": { "type": "string" },
+                            "Access-Control-Allow-Methods": { "type": "string" },
+                            "Access-Control-Allow-Origin": { "type": "string" }
+                        }
+                    }
+                },
+                "security": [{ "CognitoUserPoolsAuth": [] }],
+                "x-amazon-apigateway-integration": {
+                    "uri": "arn:aws:apigateway:%Region%:lambda:path/2015-03-31/functions/arn:aws:lambda:%Region%:%AccountId%:function:${stageVariables.GetNoteFunction}/invocations",
+                    "passthroughBehavior": "when_no_match",
+                    "httpMethod": "POST",
+                    "type": "aws_proxy"
+                }
+            },
+            "put": {
+                "description": "Update an existing note",
+                "operationId": "UpdateNote",
+                "parameters": [
+                    { "$ref": "#/parameters/noteId" },
+                    { "$ref": "#/parameters/UpdateNoteBody" }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success",
+                        "schema": { "$ref": "#/definitions/UpdateNoteResponse" },
+                        "headers": {
+                            "Access-Control-Allow-Headers": { "type": "string" },
+                            "Access-Control-Allow-Methods": { "type": "string" },
+                            "Access-Control-Allow-Origin": { "type": "string" }
+                        }
+                    }
+                },
+                "security": [{ "CognitoUserPoolsAuth": [] }],
+                "x-amazon-apigateway-integration": {
+                    "uri": "arn:aws:apigateway:%Region%:lambda:path/2015-03-31/functions/arn:aws:lambda:%Region%:%AccountId%:function:${stageVariables.UpdateNoteFunction}/invocations",
+                    "passthroughBehavior": "when_no_match",
+                    "httpMethod": "POST",
+                    "type": "aws_proxy"
+                }
+            },
+            "delete": {
+                "description": "Delete a note",
+                "operationId": "DeleteNote",
+                "parameters": [
+                    { "$ref": "#/parameters/noteId" }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success",
+                        "schema": { "$ref": "#/definitions/DeleteNoteResponse" },
+                        "headers": {
+                            "Access-Control-Allow-Headers": { "type": "string" },
+                            "Access-Control-Allow-Methods": { "type": "string" },
+                            "Access-Control-Allow-Origin": { "type": "string" }
+                        }
+                    }
+                },
+                "security": [{ "CognitoUserPoolsAuth": [] }],
+                "x-amazon-apigateway-integration": {
+                    "uri": "arn:aws:apigateway:%Region%:lambda:path/2015-03-31/functions/arn:aws:lambda:%Region%:%AccountId%:function:${stageVariables.DeleteNoteFunction}/invocations",
+                    "passthroughBehavior": "when_no_match",
+                    "httpMethod": "POST",
+                    "type": "aws_proxy"
+                }
+            },
+            "options": {
+                "summary": "CORS support",
+                "description": "Enable CORS by returning correct headers",
+                "x-amazon-apigateway-integration": {
+                    "type": "mock",
+                    "requestTemplates": {
+                        "application/json": "{ \"statusCode\": 200 }"
+                    },
+                    "responses": {
+                        "default": {
+                            "statusCode": "200",
+                            "responseParameters": {
+                                "method.response.header.Access-Control-Allow-Headers": "'Content-Type,Authorization'",
+                                "method.response.header.Access-Control-Allow-Methods": "'GET, PUT, DELETE, OPTIONS'",
+                                "method.response.header.Access-Control-Allow-Origin": "'*'"
+                            },
+                            "responseTemplates": {
+                                "application/json": "{}"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Default response for CORS",
+                        "headers": {
+                            "Access-Control-Allow-Headers": { "type": "string" },
+                            "Access-Control-Allow-Methods": { "type": "string" },
+                            "Access-Control-Allow-Origin": { "type": "string" }
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "parameters": {
+        "noteId": {
+            "in": "path",
+            "name": "noteId",
+            "required": true,
+            "type": "string"
+        },
+        "CreateNoteBody": {
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": { "$ref": "#/definitions/NoteBody" }
+        },
+        "UpdateNoteBody": {
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": { "$ref": "#/definitions/NoteBody" }
+        }
+    },
+    "definitions": {
+        "NoteBody": {
+            "required": ["data"],
+            "properties": {
+                "data": { "$ref" : "#/definitions/Note" }
+            }
+        },
+        "Note": {
+            "required": ["title", "text"],
+            "properties": {
+                "id": { "type": "string" },
+                "title": { "type": "string" },
+                "text": { "type": "string" }
+            }
+        },
+        "CreateNoteResponse": {
+            "required": ["data"],
+            "properties": {
+                "data": { "$ref": "#/definitions/Note" }
+            }
+        },
+        "GetNoteResponse": {
+            "required": ["data"],
+            "properties": {
+                "data": { "$ref": "#/definitions/Note" }
+            }
+        },
+        "UpdateNoteResponse": {
+            "required": ["data"],
+            "properties": {
+                "data": { "$ref": "#/definitions/Note" }
+            }
+        },
+        "DeleteNoteResponse": {
+            "required": ["data"],
+            "properties": {
+                "data": {
+                    "required": [],
+                    "properties": {}
+                }
+            }
+        }
+    },
+    "securityDefinitions": {
+        "CognitoUserPoolsAuth": {
+            "type": "apiKey",
+            "name": "Authorization",
+            "in": "header",
+            "x-amazon-apigateway-authtype": "cognito_user_pools",
+            "x-amazon-apigateway-authorizer": {
+                "providerARNs": ["%UserPoolArn%"],
+                "type": "cognito_user_pools"
+            }
+        }
+    }
+}
