@@ -83,10 +83,10 @@
                                     "StackName": { "Ref": "DevStack" },
                                     "ChangeSetName": { "Fn::Sub": "${DevStack}-changes" },
                                     "TemplatePath": "build-artifacts::sam-output-dev.yml",
-                                    "RoleArn": { "Fn::ImportValue": { "Fn::Sub": "${LardStack}:CodePipelineCloudFormationServiceRoleArn" } },
+                                    "RoleArn": { "Ref": "CloudFormationServiceRoleArn" },
                                     "Capabilities": "CAPABILITY_IAM",
                                     "ParameterOverrides": {
-                                        "Fn::Sub": "{ \"QuestionsDynamoStack\": \"${DevQuestionsDynamoStack}\" }"
+                                        "Fn::Sub": "{ \"DynamoStack\": \"${DevDynamoStack}\" }"
                                     }
                                 }
                             },
@@ -166,7 +166,7 @@
                                 "Configuration": {
                                     "NotificationArn": { "Ref": "ApprovalTopic" },
                                     "CustomData": {
-                                        "Fn::Sub": "Please verify the ${ProjectDescriptiveName} dev services before prod deployment."
+                                        "Fn::Sub": "Please verify the ${ProjectDescriptiveName} development services before production deployment."
                                     }
                                 }
                             }
@@ -193,10 +193,10 @@
                                     "StackName": { "Ref": "ProdStack" },
                                     "ChangeSetName": { "Fn::Sub": "${ProdStack}-changes" },
                                     "TemplatePath": "build-artifacts::sam-output-prod.yml",
-                                    "RoleArn": { "Fn::ImportValue": { "Fn::Sub": "${LardStack}:CodePipelineCloudFormationServiceRoleArn" } },
+                                    "RoleArn": { "Ref": "CloudFormationServiceRoleArn" },
                                     "Capabilities": "CAPABILITY_IAM",
                                     "ParameterOverrides": {
-                                        "Fn::Sub": "{ \"QuestionsDynamoStack\": \"${ProdQuestionsDynamoStack}\" }"
+                                        "Fn::Sub": "{ \"DynamoStack\": \"${ProdDynamoStack}\" }"
                                     }
                                 }
                             },
@@ -311,7 +311,7 @@
         "BuildServiceRole": {
             "Type": "AWS::IAM::Role",
             "Properties": {
-                "RoleName": { "Fn::Sub": "CodeBuild-${ProjectName}-service-role" },
+                "RoleName": { "Fn::Sub": "CodeBuild-${ProjectName}" },
                 "Path": "/service-role/",
                 "AssumeRolePolicyDocument": {
                     "Version": "2012-10-17",
@@ -389,6 +389,27 @@
                         }
                     }
                 ]
+            }
+        },
+        "CloudFormationServiceRole": {
+            "Type": "AWS::IAM::Role",
+            "Condition": "CreateCloudFormationServiceRole",
+            "Properties": {
+                "RoleName": { "Fn::Sub": "CloudFormation-${ProjectName}" },
+                "Path": "/service-role/",
+                "AssumeRolePolicyDocument": {
+                    "Version": "2012-10-17",
+                    "Statement": [
+                        {
+                            "Action": "sts:AssumeRole",
+                            "Principal": {
+                                "Service": "cloudformation.amazonaws.com"
+                            },
+                            "Effect": "Allow"
+                        }
+                    ]
+                },
+                "ManagedPolicyArns": ["arn:aws:iam::aws:policy/AdministratorAccess"]
             }
         },
         "ApprovalTopic": {
