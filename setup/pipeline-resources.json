@@ -83,7 +83,7 @@
                                     "StackName": { "Ref": "DevStack" },
                                     "ChangeSetName": { "Fn::Sub": "${DevStack}-changes" },
                                     "TemplatePath": "build-artifacts::sam-output-dev.yml",
-                                    "RoleArn": { "Ref": "CloudFormationServiceRoleArn" },
+                                    "RoleArn": { "Fn::GetAtt": ["CloudFormationServiceRole", "Arn"] },
                                     "Capabilities": "CAPABILITY_IAM",
                                     "ParameterOverrides": {
                                         "Fn::Sub": "{ \"DynamoStack\": \"${DevDynamoStack}\" }"
@@ -193,7 +193,7 @@
                                     "StackName": { "Ref": "ProdStack" },
                                     "ChangeSetName": { "Fn::Sub": "${ProdStack}-changes" },
                                     "TemplatePath": "build-artifacts::sam-output-prod.yml",
-                                    "RoleArn": { "Ref": "CloudFormationServiceRoleArn" },
+                                    "RoleArn": { "Fn::GetAtt": ["CloudFormationServiceRole", "Arn"] },
                                     "Capabilities": "CAPABILITY_IAM",
                                     "ParameterOverrides": {
                                         "Fn::Sub": "{ \"DynamoStack\": \"${ProdDynamoStack}\" }"
