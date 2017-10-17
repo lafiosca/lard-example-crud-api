@@ -112,7 +112,7 @@
                 "Policies": ["AmazonDynamoDBFullAccess"],
                 "Environment": {
                     "Variables": {
-                        "DynamoTableNotes": { "Fn::ImportValue": { "Fn::Sub": "${QuestionsDynamoStack}:NotesTable" } }
+                        "DynamoTableNotes": { "Fn::ImportValue": { "Fn::Sub": "${DynamoStack}:NotesTable" } }
                     }
                 }
             }
