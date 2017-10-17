@@ -1,0 +1,26 @@
+{
+  "name": "lard-example-crud-api-get-notes",
+  "version": "0.1.0",
+  "description": "Lambda function for getting list of notes",
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/lafiosca/lard-example-crud-api.git"
+  },
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Joe Lafiosca <joe@lafiosca.com>",
+  "license": "MIT",
+  "dependencies": {
+    "aws-sdk": "^2.134.0",
+    "bluebird": "^3.5.1",
+    "lard-lambda-handler": "^1.0.0",
+    "lodash": "^4.17.4"
+  },
+  "devDependencies": {
+    "eslint": "^4.9.0",
+    "eslint-config-airbnb-base": "^12.1.0",
+    "eslint-plugin-import": "^2.7.0"
+  }
+}
