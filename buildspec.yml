@@ -4,6 +4,7 @@ phases:
   install:
     commands:
       - apt-get update -y
+
       # jq is needed for fetching UserPoolArn from CloudFormation in post_build step
       - apt-get install -y jq
 
@@ -16,6 +17,7 @@ phases:
   build:
     commands:
       - npm install
+      - cd src/get-notes && ../../node_modules/.bin/gulp build
       - cd src/get-note && ../../node_modules/.bin/gulp build
       - cd src/create-note && ../../node_modules/.bin/gulp build
       - cd src/update-note && ../../node_modules/.bin/gulp build

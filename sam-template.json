@@ -9,11 +9,53 @@
                 "DefinitionUri": "api-swagger.json",
                 "StageName": "Api",
                 "Variables": {
+                    "GetNotesFunction": { "Fn::Sub": "${GetNotesFunction}:live" },
                     "GetNoteFunction": { "Fn::Sub": "${GetNoteFunction}:live" },
                     "CreateNoteFunction": { "Fn::Sub": "${CreateNoteFunction}:live" },
                     "UpdateNoteFunction": { "Fn::Sub": "${UpdateNoteFunction}:live" },
                     "DeleteNoteFunction": { "Fn::Sub": "${DeleteNoteFunction}:live" }
                 }
+            }
+        },
+        "GetNotesFunction": {
+            "Type": "AWS::Serverless::Function",
+            "Properties": {
+                "FunctionName": { "Fn::Sub": "${AWS::StackName}-GetNotes" },
+                "Handler": "index.handler",
+                "Runtime": "nodejs6.10",
+                "CodeUri": "src/get-notes/export/dist.zip",
+                "MemorySize": 128,
+                "Timeout": 10,
+                "Description": "GetNotes API handler",
+                "Policies": ["AmazonDynamoDBReadOnlyAccess"],
+                "Environment": {
+                    "Variables": {
+                        "DynamoTableNotes": { "Fn::ImportValue": { "Fn::Sub": "${DynamoStack}:NotesTable" } }
+                    }
+                }
+            }
+        },
+        "GetNotesVersion": {
+            "Type": "AWS::Lambda::Version",
+            "Properties": {
+                "FunctionName": { "Ref": "GetNotesFunction" }
+            }
+        },
+        "GetNotesAlias": {
+            "Type": "AWS::Lambda::Alias",
+            "Properties": {
+                "FunctionName": { "Ref": "GetNotesFunction" },
+                "FunctionVersion": { "Fn::GetAtt": ["GetNotesVersion", "Version"] },
+                "Name": "live"
+            }
+        },
+        "GetNotesApiPermission": {
+            "Type": "AWS::Lambda::Permission",
+            "Properties": {
+                "Action": "lambda:InvokeFunction",
+                "FunctionName": { "Ref": "GetNotesAlias" },
+                "Principal": "apigateway.amazonaws.com",
+                "SourceArn": { "Fn::Sub": "arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${LardExampleCrudApi}/Api/GET/notes" }
             }
         },
         "GetNoteFunction": {
@@ -182,6 +224,7 @@
         }
     },
     "Outputs": {
+        "GetNotesFunctionArn": { "Value": { "Fn::GetAtt": ["GetNotesFunction", "Arn"] } },
         "GetNoteFunctionArn": { "Value": { "Fn::GetAtt": ["GetNoteFunction", "Arn"] } },
         "CreateNoteFunctionArn": { "Value": { "Fn::GetAtt": ["CreateNoteFunction", "Arn"] } },
         "UpdateNoteFunctionArn": { "Value": { "Fn::GetAtt": ["UpdateNoteFunction", "Arn"] } },

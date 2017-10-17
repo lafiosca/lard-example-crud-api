@@ -17,6 +17,29 @@
     "x-amazon-apigateway-request-validator": "full",
     "paths": {
         "/notes": {
+            "get": {
+                "description": "Get all existing notes",
+                "operationId": "GetNotes",
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": "Success",
+                        "schema": { "$ref": "#/definitions/GetNotesResponse" },
+                        "headers": {
+                            "Access-Control-Allow-Headers": { "type": "string" },
+                            "Access-Control-Allow-Methods": { "type": "string" },
+                            "Access-Control-Allow-Origin": { "type": "string" }
+                        }
+                    }
+                },
+                "security": [{ "CognitoUserPoolsAuth": [] }],
+                "x-amazon-apigateway-integration": {
+                    "uri": "arn:aws:apigateway:%Region%:lambda:path/2015-03-31/functions/arn:aws:lambda:%Region%:%AccountId%:function:${stageVariables.GetNotesFunction}/invocations",
+                    "passthroughBehavior": "when_no_match",
+                    "httpMethod": "POST",
+                    "type": "aws_proxy"
+                }
+            },
             "post": {
                 "description": "Create a new note",
                 "operationId": "CreateNote",
@@ -55,7 +78,7 @@
                             "statusCode": "200",
                             "responseParameters": {
                                 "method.response.header.Access-Control-Allow-Headers": "'Content-Type,Authorization'",
-                                "method.response.header.Access-Control-Allow-Methods": "'POST, OPTIONS'",
+                                "method.response.header.Access-Control-Allow-Methods": "'GET, POST, OPTIONS'",
                                 "method.response.header.Access-Control-Allow-Origin": "'*'"
                             },
                             "responseTemplates": {
@@ -221,6 +244,15 @@
                 "id": { "type": "string" },
                 "title": { "type": "string" },
                 "text": { "type": "string" }
+            }
+        },
+        "GetNotesResponse": {
+            "required": ["data"],
+            "properties": {
+                "data": {
+                    "type": "array",
+                    "items": { "$ref": "#/definitions/Note" }
+                }
             }
         },
         "CreateNoteResponse": {
