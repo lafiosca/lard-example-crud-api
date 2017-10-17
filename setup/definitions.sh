@@ -27,8 +27,6 @@ GitHubOwner=lafiosca
 GitHubRepo=lard-example-crud-api
 GitHubBranch=master
 
-ApprovalEmail=joe@lafiosca.com
-
 
 ## Dynamo-specific variables
 

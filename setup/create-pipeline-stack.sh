@@ -6,7 +6,10 @@ set -e
 cd "${BASH_SOURCE%/*}"
 source ./definitions.sh
 
-read -s -p "Enter GitHub OAuth Token: " GitHubOAuthToken
+read -s -p "GitHub OAuth Token: " GitHubOAuthToken
+echo
+
+read -s -p "Email address for approval notifications: " ApprovalEmail
 echo
 
 echo
