@@ -393,7 +393,6 @@
         },
         "CloudFormationServiceRole": {
             "Type": "AWS::IAM::Role",
-            "Condition": "CreateCloudFormationServiceRole",
             "Properties": {
                 "RoleName": { "Fn::Sub": "CloudFormation-${ProjectName}" },
                 "Path": "/service-role/",
