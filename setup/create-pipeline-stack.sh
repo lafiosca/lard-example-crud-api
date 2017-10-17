@@ -9,7 +9,7 @@ source ./definitions.sh
 read -s -p "GitHub OAuth Token: " GitHubOAuthToken
 echo
 
-read -s -p "Email address for approval notifications: " ApprovalEmail
+read -p "Email address for approval notifications: " ApprovalEmail
 echo
 
 echo
