@@ -228,7 +228,8 @@
         "GetNoteFunctionArn": { "Value": { "Fn::GetAtt": ["GetNoteFunction", "Arn"] } },
         "CreateNoteFunctionArn": { "Value": { "Fn::GetAtt": ["CreateNoteFunction", "Arn"] } },
         "UpdateNoteFunctionArn": { "Value": { "Fn::GetAtt": ["UpdateNoteFunction", "Arn"] } },
-        "DeleteNoteFunctionArn": { "Value": { "Fn::GetAtt": ["DeleteNoteFunction", "Arn"] } }
+        "DeleteNoteFunctionArn": { "Value": { "Fn::GetAtt": ["DeleteNoteFunction", "Arn"] } },
+        "ApiId": { "Value": { "Ref": "LardExampleCrudApi" } }
     },
     "Parameters": {
         "DynamoStack": {
