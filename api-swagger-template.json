@@ -67,6 +67,7 @@
             },
             "options": {
                 "summary": "CORS support",
+                "operationId": "OptionsNotes",
                 "description": "Enable CORS by returning correct headers",
                 "x-amazon-apigateway-integration": {
                     "type": "mock",
@@ -178,7 +179,11 @@
             },
             "options": {
                 "summary": "CORS support",
+                "operationId": "OptionsNote",
                 "description": "Enable CORS by returning correct headers",
+                "parameters": [
+                    { "$ref": "#/parameters/noteId" }
+                ],
                 "x-amazon-apigateway-integration": {
                     "type": "mock",
                     "requestTemplates": {
