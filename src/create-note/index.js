@@ -76,7 +76,8 @@ const translateResponse = note => ({
 
 exports.handler = api((event) => {
 	console.log(`Event:\n${JSON.stringify(event, null, 2)}`);
-	return prepareNote(event)
+	return Promise.resolve(event)
+		.then(prepareNote)
 		.then(putNote)
 		.then(translateResponse)
 		.catch((error) => {
