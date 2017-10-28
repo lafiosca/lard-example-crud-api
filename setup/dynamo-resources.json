@@ -4,7 +4,6 @@
     "Resources": {
         "NotesTable": {
             "Type": "AWS::DynamoDB::Table",
-            "DeletionPolicy": "Retain",
             "Properties": {
                 "TableName": { "Fn::Sub": "${ParentStack}-Notes" },
                 "AttributeDefinitions": [
