@@ -4,7 +4,6 @@
     "Resources": {
         "UserPool": {
             "Type": "AWS::Cognito::UserPool",
-            "DeletionPolicy": "Retain",
             "Properties": {
                 "UserPoolName": { "Ref": "ParentStack" },
                 "AdminCreateUserConfig": {
@@ -36,7 +35,6 @@
         },
         "UserPoolClientWeb": {
             "Type": "AWS::Cognito::UserPoolClient",
-            "DeletionPolicy": "Retain",
             "Properties": {
                 "UserPoolId": { "Ref": "UserPool" },
                 "ClientName": { "Fn::Sub": "${ParentStack}-Web" },
@@ -47,7 +45,6 @@
         },
         "UserPoolSmsRole": {
             "Type": "AWS::IAM::Role",
-            "DeletionPolicy": "Retain",
             "Properties": {
                 "RoleName": { "Fn::Sub": "${ParentStack}-UserPool-Sms" },
                 "AssumeRolePolicyDocument": {
